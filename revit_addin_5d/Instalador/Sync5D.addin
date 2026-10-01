@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<RevitAddIns>
+  <AddIn Type="Application">
+    <Name>5D_VENTAS Sync5D</Name>
+    <Assembly>./Sync5D.dll</Assembly>
+    <AddInId>D2A2FDCE-189F-47F4-AC89-8A2DEC798A6B</AddInId>
+    <FullClassName>Ventas5D.Sync5D.App</FullClassName>
+    <VendorId>GCPEASA</VendorId>
+    <VendorDescription>GCPEASA - 5D_VENTAS</VendorDescription>
+  </AddIn>
+</RevitAddIns>

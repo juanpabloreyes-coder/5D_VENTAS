@@ -1,0 +1,18 @@
+# Datos generados localmente (contienen informacion operativa)
+Data/5D_VENTAS.json
+Dashboard/5D-Ventas-Report.html
+Dashboard/5d/
+
+# Compilados del add-in
+revit_addin_5d/bin/
+revit_addin_5d/obj/
+revit_addin_5d/Instalador/*.dll
+
+# Cache local, logs y temporales
+cache/
+__pycache__/
+Automation/
+*.tmp
+Thumbs.db
+Desktop.ini
+~$*

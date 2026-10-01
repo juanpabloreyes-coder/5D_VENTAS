@@ -1,0 +1,31 @@
+Sync5D - 5D_VENTAS
+==================
+
+Que es esto?
+------------
+Un complemento de Revit con dos funciones:
+
+1. Pestana "5D" con el boton "Exportar Presupuesto": genera el Excel del
+   presupuesto (una pestana por tabla, Hoja1 y Hoja2 ya compiladas), lo
+   guarda en 02121_CATALOGOS del proyecto y lo abre. Solo pregunta el
+   frente de trabajo.
+
+2. Cada vez que sincronizas un modelo de VENTAS GCP, revisa que los
+   conceptos 5D coincidan con la Base de Datos de Presupuestos y guarda
+   una foto de las tablas 5D. No modifica el modelo ni muestra ventanas.
+
+Como instalarlo
+----------------
+1. Copia esta carpeta completa a tu computadora (o abrela directo si ya
+   la tienes en el Desktop Connector).
+2. Haz doble clic en "instalar.bat".
+3. Abre Revit. Si sale un aviso de seguridad que dice "Unsigned Add-In",
+   dale clic en "Always Load". Solo aparece la primera vez.
+
+Como quitarlo
+--------------
+Doble clic en "desinstalar.bat".
+
+Dudas
+-----
+Cualquier cosa, preguntale a Juan Pablo.

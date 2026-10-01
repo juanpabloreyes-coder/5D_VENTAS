@@ -1,0 +1,38 @@
+{
+  "aps": {
+    "account_id": "17fefe95-3b69-4d44-bb94-0cbec2173aea",
+    "project_id": "5f587011-eb8e-4072-b4df-f16aee3915aa"
+  },
+  "proyecto_acc": "VENTAS GCP",
+  "raiz_nombres": [
+    "Project Files",
+    "Archivos de proyecto",
+    "Plans"
+  ],
+  "subcarpeta_datos": "011_WIP",
+  "excluir_proyectos": [],
+  "excluir_rvt_regex": "\\.\\d{4}\\.rvt$",
+  "_carpeta_5d": "Carpeta compartida 03374_5D_VENTAS: catalogo PPTO MAESTRO, resultados del add-in Sync5D al sincronizar (resultados) y fotos de cada exportacion del presupuesto (exportaciones).",
+  "carpeta_5d": "C:\\Users\\Usuario\\DC\\ACCDocs\\GCPEASA\\TEMPORAL_GCP_BIM\\Project Files\\03_Common_Resources\\033_Costos_5D\\0337_SQDCM\\03374_5D_VENTAS",
+  "ruta_catalogos": "02_PRESUPUESTOS/021_AUXILIARES/0212_CUANTIFICACIONES/02121_CATALOGOS",
+  "equipos_xlsx": "C:\\Users\\Usuario\\DC\\ACCDocs\\GCPEASA\\GCP_TRANSFORMACIÓN_DIGITAL\\Project Files\\01_IMPLEMENTACIÓN_BIM\\0112_SQDCM\\Equipos e integrantes - VENTAS.xlsx",
+  "equipos_hoja": "Integrantes",
+  "alias_personas": {
+    "JUANPABLOREYESGCP": "JUAN PABLO REYES MEDINA"
+  },
+  "zona_horaria_utc": -6,
+  "cache": "cache/modelos_acc.json",
+  "json": "Data/5D_VENTAS.json",
+  "plantilla": "Dashboard/5D-Ventas-Report.template.html",
+  "html": "Dashboard/5D-Ventas-Report.html",
+  "carpeta_proyectos": "5d",
+  "max_filas_ok_por_tarjeta": 2000,
+  "cache_excels": "cache/excels",
+  "_integrantes_prueba": "Solo para pruebas: personas que cuentan aunque no esten en el Excel de equipos. Dejar [] al terminar.",
+  "integrantes_prueba": [
+    {
+      "integrante": "JUAN PABLO REYES MEDINA",
+      "equipo": "PRUEBAS"
+    }
+  ]
+}

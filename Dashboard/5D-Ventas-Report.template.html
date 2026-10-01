@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Métricas 5D · Portafolio VENTAS</title>
+<style>
+:root{--page:#f3f4f6;--surface:#fff;--soft:#f4f5f7;--ink:#202124;--muted:#7b8088;--line:#e7e9ed;--blue:#1686ff;--green:#20b875;--shadow:0 12px 34px rgba(37,45,60,.08)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,'Segoe UI',Arial,sans-serif;background:var(--page);color:var(--ink);min-width:320px}
+.wrap{width:min(100%,1180px);margin:0 auto;padding:18px 16px 34px;display:flex;flex-direction:column;gap:16px}
+.hero{background:rgba(255,255,255,.94);border:1px solid rgba(255,255,255,.95);border-radius:24px;box-shadow:var(--shadow);padding:24px 26px;display:flex;align-items:center;justify-content:space-between;gap:22px}
+.eyebrow{display:block;color:#7b8088;font-size:.58rem;font-weight:800;letter-spacing:.2em;text-transform:uppercase;margin-bottom:8px}
+.hero h1{font-size:2rem;line-height:.98;letter-spacing:-.045em;font-weight:850}.hero h1 span{color:var(--blue)}
+.hero p{font-size:.7rem;color:#7a8088;margin-top:11px}
+.reset-btn{border:0;background:#eef0f3;color:#3d4249;border-radius:999px;padding:11px 18px;font-size:.64rem;font-weight:800;cursor:pointer;white-space:nowrap;transition:.18s ease}
+.reset-btn:hover{background:#e1e5ea;transform:translateY(-1px)}
+/* filtros: mismos controles que REVISIONES VENTAS */
+.filter-card{background:rgba(255,255,255,.95);border:1px solid rgba(255,255,255,.9);border-radius:22px;box-shadow:var(--shadow);padding:15px 17px}
+.filter-label{font-size:.55rem;color:#777d86;text-transform:uppercase;letter-spacing:.16em;font-weight:800;margin-bottom:8px}
+.filter-row{margin:0 0 11px}.filter-row:last-child{margin-bottom:0}
+.filter-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) 260px;gap:12px;align-items:end}
+.project-nav{display:flex;gap:5px;flex-wrap:wrap;align-items:center;background:var(--soft);border-radius:17px;padding:5px}
+.project-btn{border:0;background:transparent;color:#4b5058;border-radius:13px;padding:9px 13px;font-size:.59rem;font-weight:800;cursor:pointer;transition:.16s ease;font-family:inherit}
+.project-btn span{color:#949aa3;font-weight:700}
+.project-btn:hover{background:#e8ebef}
+.project-btn.active{background:var(--blue);color:#fff;box-shadow:0 6px 14px rgba(22,134,255,.28)}
+.project-btn.active span{color:#fff}
+#personFilter{width:100%;padding:9px 13px;border:0;border-radius:999px;color:#3d4249;background:var(--soft);font:inherit;font-size:.62rem;font-weight:700;cursor:pointer}
+@media(max-width:900px){.filter-grid{grid-template-columns:1fr}.hero{flex-direction:column;align-items:flex-start}}
+/* tarjetas: iguales al indice de auditoria del workspace */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(258px,1fr));gap:13px}
+.tarjeta{display:flex;flex-direction:column;gap:11px;padding:19px 20px;border:1px solid rgba(255,255,255,.9);border-radius:20px;
+  background:rgba(255,255,255,.96);box-shadow:var(--shadow);text-decoration:none;color:inherit;transition:transform .16s ease,box-shadow .16s ease}
+.tarjeta:hover{transform:translateY(-2px);box-shadow:0 18px 40px rgba(37,45,60,.13)}
+.tarjeta-top{display:flex;align-items:center;gap:11px}
+.marca{width:40px;height:40px;flex:none;border-radius:12px;background:linear-gradient(145deg,#20b875,#1686ff);display:grid;place-items:center;color:#fff;font-weight:900;font-size:.62rem}
+.tarjeta h2{font-size:.86rem;font-weight:850;letter-spacing:-.01em}
+.tarjeta .meta{font-size:.58rem;color:var(--muted);margin-top:3px}
+.cifras{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.cifra{background:var(--soft);border-radius:12px;padding:9px 6px;text-align:center}
+.cifra strong{display:block;font-size:.98rem;font-weight:900;letter-spacing:-.02em}
+.cifra small{display:block;font-size:.48rem;color:var(--muted);text-transform:uppercase;margin-top:2px}
+.cifra.ok strong{color:var(--green)}.cifra.mal strong{color:#ed5a5a}.cifra.rev strong{color:#e9a10b}
+.modulos .project-btn{font-size:.66rem;padding:10px 16px}
+.modulo-desc{font-size:.6rem;color:var(--muted);margin:8px 4px 0;line-height:1.5}
+.resp{font-size:.56rem;color:var(--muted);line-height:1.5}
+.resp b{color:#3d4249;font-weight:800}
+.pie{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:auto;padding-top:4px}
+.abrir{font-size:.58rem;font-weight:800;color:var(--blue)}
+.peso{font-size:.52rem;color:#a3a8af}
+.vacio{grid-column:1/-1;background:rgba(255,255,255,.96);border-radius:20px;box-shadow:var(--shadow);padding:34px 26px;text-align:center;color:var(--muted);font-size:.7rem;line-height:1.6}
+.vacio strong{display:block;color:var(--ink);font-size:.9rem;margin-bottom:6px}
+footer{color:#979ca4;font-size:.58rem;text-align:center;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div><span class="eyebrow">Portafolio VENTAS</span>
+    <h1>Métricas<br><span>5D</span></h1>
+    <p id="resumen"></p></div>
+    <button class="reset-btn" id="resetFilters" type="button">Restablecer filtros</button>
+  </header>
+  <section class="filter-card" aria-label="Filtros">
+    <div class="filter-row"><div class="filter-label">Métrica</div><div class="project-nav modulos" id="moduleNav"></div>
+      <p class="modulo-desc" id="moduleDesc"></p></div>
+    <div class="filter-row"><div class="filter-label">Mes</div><div class="project-nav" id="monthNav"></div></div>
+    <div class="filter-row"><div class="filter-label">Proyecto</div><div class="project-nav" id="projectNav"></div></div>
+    <div class="filter-row filter-grid">
+      <div><div class="filter-label">Disciplina</div><div class="project-nav" id="discNav"></div></div>
+      <div><div class="filter-label">Equipo</div><div class="project-nav" id="teamNav"></div></div>
+      <div><div class="filter-label">Integrante</div><select id="personFilter" aria-label="Filtro por integrante"></select></div>
+    </div>
+  </section>
+  <section class="grid" id="grid"></section>
+  <footer id="pie">Cada tarjeta abre el reporte del proyecto para la métrica elegida, con el diseño del Checker.<br>
+    Responsable: integrante del listado con más sincronizaciones del modelo en el mes.</footer>
+</div>
+<script id="cat5d-data" type="application/json"></script>
+<script>
+const DATA = JSON.parse(document.getElementById('cat5d-data').textContent || '{"modulos":[]}');
+const MODULOS = DATA.modulos || [];
+let MOD = MODULOS[0] || {id:'', nombre:'', rows:[], paginas:{}, tarjeta:{pct:{}, cifras:[]}};
+let ROWS = MOD.rows || [];
+const $ = id => document.getElementById(id);
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fecha=iso=>{const d=new Date(iso);return isNaN(d)?iso:d.toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'})};
+const mb=b=>(b/1048576).toFixed(1)+' MB';
+const inicial=s=>s.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Za-z0-9 ]/g,' ').trim().split(/\s+/).map(x=>x[0]).join('').slice(0,3).toUpperCase();
+const MONTH_LABEL = m => { const [y,mm] = m.split('-');
+  return new Intl.DateTimeFormat('es-MX', {month:'long', year:'numeric', timeZone:'UTC'}).format(new Date(Date.UTC(+y, +mm-1, 1))).replace(/^./, c => c.toUpperCase()); };
+const DISC_LABEL = d => ({ARQUITECTURA:'Arquitectura', ESTRUCTURA:'Estructura', ELECTRICA:'Eléctrica', ESPECIALES:'Especiales', MECANICA:'Mecánica', PLOMERIA:'Plomería', 'SIN DISCIPLINA':'Sin disciplina'}[d] || d);
+let MESES = [];
+const calcMeses = () => { MESES = [...new Set(ROWS.map(r => r.mes))].sort().reverse(); if (!MESES.includes(CUR_MONTH)) CUR_MONTH = MESES[0] || ''; };
+let CUR_MONTH = MESES[0] || '', CUR_PROJECT = 'ALL', CUR_DISC = 'ALL', CUR_TEAM = 'ALL', CUR_PERSON = 'ALL';
+
+// Cada filtro cuenta modelos con los demas filtros aplicados (menos el propio). El mes no tiene "Todos":
+// cada mes es una foto distinta de los mismos modelos.
+const pasa = (r, sin) => (sin === 'm' || r.mes === CUR_MONTH)
+  && (sin === 'p' || CUR_PROJECT === 'ALL' || r.proyecto === CUR_PROJECT)
+  && (sin === 'd' || CUR_DISC === 'ALL' || r.disciplina === CUR_DISC)
+  && (sin === 'e' || CUR_TEAM === 'ALL' || r.equipo === CUR_TEAM)
+  && (sin === 'i' || CUR_PERSON === 'ALL' || r.responsable === CUR_PERSON);
+const CAMPO = {m:'mes', p:'proyecto', d:'disciplina', e:'equipo'};
+function chips(el, clave, cur, valores, etiqueta, onPick, conTodos=true){
+  const base = ROWS.filter(r => pasa(r, clave));
+  const n = v => base.filter(r => r[CAMPO[clave]] === v).length;
+  $(el).innerHTML = (conTodos ? `<button class="project-btn${cur === 'ALL' ? ' active' : ''}" type="button" data-v="ALL">Todos <span>(${base.length})</span></button>` : '') +
+    valores.map(v => `<button class="project-btn${cur === v ? ' active' : ''}" type="button" data-v="${esc(v)}">${esc(etiqueta(v))} <span>(${n(v)})</span></button>`).join('');
+  $(el).querySelectorAll('.project-btn').forEach(b => b.addEventListener('click', () => onPick(b.dataset.v)));
+}
+const unicos = campo => [...new Set(ROWS.map(r => r[campo]).filter(Boolean))].sort((a,b) => a.localeCompare(b));
+function fillFilters(){
+  $('moduleNav').innerHTML = MODULOS.map(m => `<button class="project-btn${m.id === MOD.id ? ' active' : ''}" type="button" data-v="${esc(m.id)}">${esc(m.nombre)} <span>(${(m.rows || []).length})</span></button>`).join('');
+  $('moduleNav').querySelectorAll('.project-btn').forEach(b => b.addEventListener('click', () => {
+    MOD = MODULOS.find(m => m.id === b.dataset.v) || MOD; ROWS = MOD.rows || []; calcMeses(); refresh(); }));
+  $('moduleDesc').textContent = MOD.descripcion || '';
+  chips('monthNav', 'm', CUR_MONTH, MESES, MONTH_LABEL, v => { CUR_MONTH = v; refresh(); }, false);
+  chips('projectNav', 'p', CUR_PROJECT, unicos('proyecto'), v => v, v => { CUR_PROJECT = v; refresh(); });
+  chips('discNav', 'd', CUR_DISC, unicos('disciplina'), DISC_LABEL, v => { CUR_DISC = v; refresh(); });
+  chips('teamNav', 'e', CUR_TEAM, unicos('equipo'), v => v, v => { CUR_TEAM = v; refresh(); });
+  const base = ROWS.filter(r => pasa(r, 'i'));
+  $('personFilter').innerHTML = `<option value="ALL">Todos los integrantes (${base.length})</option>` +
+    unicos('responsable').map(p => `<option value="${esc(p)}">${esc(p)} (${base.filter(r => r.responsable === p).length})</option>`).join('');
+  $('personFilter').value = CUR_PERSON;
+}
+// Tarjeta definida por cada modulo: % principal (num/den) y tres cifras (sumas o porcentajes)
+const suma = (lst, campo) => lst.reduce((s, r) => s + (+r[campo] || 0), 0);
+const porc = (lst, num, den) => { const d = suma(lst, den); return d ? Math.round(100 * suma(lst, num) / d) : 100; };
+const colorPct = v => v <= 70 ? '#ed5a5a' : v < 95 ? '#e9a10b' : '#20b875';
+const cifra = (lst, c) => c.tipo === 'pct' ? porc(lst, c.num, c.den) + '%' : suma(lst, c.campo);
+function render(){
+  const rows = ROWS.filter(r => pasa(r, ''));
+  const total = ROWS.filter(r => r.mes === CUR_MONTH);
+  const porProy = {};
+  rows.forEach(r => (porProy[r.proyecto] = porProy[r.proyecto] || []).push(r));
+  const proyectos = Object.keys(porProy).sort((a,b) => a.localeCompare(b)).map(p => {
+    const lst = porProy[p], todos = total.filter(r => r.proyecto === p).length;
+    const pag = (MOD.paginas || {})[CUR_MONTH + '/' + lst[0].slug] || {};
+    const resp = {};
+    lst.forEach(r => resp[r.responsable] = (resp[r.responsable] || 0) + 1);
+    const t = MOD.tarjeta || {pct:{}, cifras:[]};
+    return {proyecto:p, href:pag.href || '#', peso:pag.peso || 0, modelos:lst.length, todos,
+      pct: porc(lst, t.pct.num, t.pct.den), pctLabel: t.pct.etiqueta || '%',
+      cifras: (t.cifras || []).map(c => ({v: cifra(lst, c), etiqueta: c.etiqueta, clase: c.clase || ''})),
+      fecha:lst.map(r=>r.fecha).sort().pop(),
+      resp:Object.entries(resp).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])).map(x=>x[0])};
+  });
+  $('resumen').textContent = ROWS.length
+    ? `${proyectos.length} proyecto${proyectos.length===1?'':'s'} revisado${proyectos.length===1?'':'s'} · ${rows.length} modelo${rows.length===1?'':'s'} · ${MONTH_LABEL(CUR_MONTH)} · elige un proyecto para abrir su reporte completo`
+    : `Sin datos todavía en ${MOD.nombre || 'esta métrica'}`;
+  if (!ROWS.length) {
+    $('grid').innerHTML = `<div class="vacio"><strong>Todavía no hay datos de ${esc(MOD.nombre || 'esta métrica')}</strong>Se llenan solos con el complemento Sync5D: al sincronizar modelos de VENTAS y al exportar el presupuesto desde la pestaña 5D.</div>`;
+    return;
+  }
+  if (!proyectos.length) {
+    $('grid').innerHTML = `<div class="vacio"><strong>Sin coincidencias</strong>Ningún modelo cumple los filtros seleccionados.</div>`;
+    return;
+  }
+  $('grid').innerHTML = proyectos.map(p=>`
+  <a class="tarjeta" href="${esc(p.href)}" target="_blank" rel="noopener">
+    <div class="tarjeta-top"><div class="marca">${esc(inicial(p.proyecto))}</div>
+      <div><h2>${esc(p.proyecto)}</h2><div class="meta">${p.modelos === p.todos ? p.modelos : p.modelos + ' de ' + p.todos} modelo${p.todos===1?'':'s'} · ${esc(fecha(p.fecha))} · <b style="color:${colorPct(p.pct)}">${p.pct}% ${esc(p.pctLabel.replace('% ', ''))}</b></div></div></div>
+    <div class="cifras">${p.cifras.map(c => `<div class="cifra ${esc(c.clase)}"><strong>${esc(c.v)}</strong><small>${esc(c.etiqueta)}</small></div>`).join('')}</div>
+    <div class="resp">Responsable${p.resp.length===1?'':'s'}: <b>${p.resp.map(esc).join('</b>, <b>')}</b></div>
+    <div class="pie"><span class="abrir">Abrir reporte →</span><span class="peso">${esc(mb(p.peso))}</span></div>
+  </a>`).join('');
+}
+function refresh(){ fillFilters(); render(); }
+$('personFilter').addEventListener('change', e => { CUR_PERSON = e.target.value; refresh(); });
+$('resetFilters').addEventListener('click', () => { calcMeses(); CUR_MONTH = MESES[0] || ''; CUR_PROJECT = CUR_DISC = CUR_TEAM = CUR_PERSON = 'ALL'; refresh(); });
+if (DATA.generadoEn) $('pie').insertAdjacentHTML('beforeend', `<br>Actualizado: ${esc(new Date(DATA.generadoEn).toLocaleString('es-MX'))} · ${esc(DATA.source || '')}`);
+calcMeses();
+refresh();
+</script>
+</body></html>
