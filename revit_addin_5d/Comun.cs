@@ -50,14 +50,6 @@ namespace Ventas5D.Sync5D
                 File.AppendAllText(Path.Combine(dir, "sync5d.log"), $"{DateTime.Now:yyyy-MM-dd HH:mm:ss}  {msg}{Environment.NewLine}");
             }
             catch { }
-            // Copia junto al add-in (carpeta Addins\2025) para poder revisarla facilmente
-            try
-            {
-                var dir2 = Path.GetDirectoryName(typeof(Log).Assembly.Location);
-                if (!string.IsNullOrEmpty(dir2))
-                    File.AppendAllText(Path.Combine(dir2, "Sync5D.log"), $"{DateTime.Now:yyyy-MM-dd HH:mm:ss}  {msg}{Environment.NewLine}");
-            }
-            catch { }
         }
     }
 
