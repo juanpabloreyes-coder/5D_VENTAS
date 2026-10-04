@@ -22,6 +22,8 @@ set PYTHONIOENCODING=utf-8
 echo ============================================== >> Automation\cat5d_sync.log
 echo Corrida mensual %OBJETIVO%: %date% %time% >> Automation\cat5d_sync.log
 
+REM Cierre mensual: busqueda completa en ACC, sin usar cache de carpetas
+set VENTAS_COMPLETO=1
 python -m cat5d_sync run >> Automation\cat5d_sync.log 2>&1
 
 if %ERRORLEVEL% EQU 0 (

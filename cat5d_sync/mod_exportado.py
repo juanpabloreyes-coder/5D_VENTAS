@@ -22,7 +22,7 @@ from pathlib import Path
 
 from . import comun, validacion5d
 from .checker_html import build_html
-from .fuentes import modelo_sin_ext, parse_fecha
+from .fuentes import cache_vigente, modelo_sin_ext, parse_fecha
 
 log = logging.getLogger("cat5d_sync.exportado")
 
@@ -55,14 +55,13 @@ def leer_fotos(carpeta):
 
 def _carpetas_catalogos(aps, cfg):
     """[(proyecto, folder_id)] de 02121_CATALOGOS en cada proyecto de VENTAS (Data Management).
-    Se guarda en cache 'catalogo_horas' (24 por defecto) para no recorrer las carpetas en cada corrida."""
+    Se guarda en cache (ver fuentes.cache_vigente) para no recorrer las carpetas en cada corrida."""
     a = cfg["aps"]
     pid = aps.con_b(a["project_id"])
     cache_p = Path(cfg.get("_cache_carpetas", "cache/carpetas_catalogos.json"))
     try:
         c = json.loads(cache_p.read_text(encoding="utf-8"))
-        edad = (datetime.now() - datetime.fromisoformat(c["guardado"])).total_seconds() / 3600
-        if edad < float(cfg.get("catalogo_horas", 24)):
+        if cache_vigente(c["guardado"]):
             return pid, [tuple(x) for x in c["carpetas"]]
     except Exception:
         pass
