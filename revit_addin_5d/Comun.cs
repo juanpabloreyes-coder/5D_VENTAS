@@ -27,6 +27,8 @@ namespace Ventas5D.Sync5D
         public string ruta_catalogos { get; set; } = @"02_PRESUPUESTOS\021_AUXILIARES\0212_CUANTIFICACIONES\02121_CATALOGOS";
         // Nombre de la carpeta del proyecto de ACC en Desktop Connector.
         public string proyecto_acc { get; set; } = "VENTAS GCP";
+        // Ocultar el boton viejo "Exportar Presupuesto" de la pestana GCPEASA (GCP_PLUGIN). false = mostrarlo.
+        public bool ocultar_exportar_gcp { get; set; } = true;
 
         public static Config Leer()
         {

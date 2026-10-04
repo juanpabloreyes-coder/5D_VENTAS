@@ -54,7 +54,31 @@ namespace Ventas5D.Sync5D
             try { CrearCinta(app); }
             catch (Exception ex) { Log.Escribir("ERROR cinta " + ex); }
             app.ControlledApplication.DocumentSynchronizedWithCentral += AlSincronizar;
+            // Ocultar el boton viejo "Exportar Presupuesto" de GCP_PLUGIN (cuando ya cargaron todos los add-ins)
+            var cfg0 = Config.Leer();
+            if (cfg0 == null || cfg0.ocultar_exportar_gcp)
+            {
+                _app = app;
+                app.ControlledApplication.ApplicationInitialized += (s, e) => { if (!IntentarOcultar()) app.Idling += AlEsperar; };
+            }
             return Result.Succeeded;
+        }
+
+        static UIControlledApplication _app;
+        static int _intentos;
+        static bool IntentarOcultar()
+        {
+            try
+            {
+                var n = OcultarGcp.Ocultar();
+                if (n > 0) Log.Escribir($"Boton viejo 'Exportar Presupuesto' de GCPEASA oculto ({n}).");
+                return n > 0;
+            }
+            catch (Exception ex) { Log.Escribir("ERROR ocultando boton GCP " + ex.Message); return true; }
+        }
+        static void AlEsperar(object s, Autodesk.Revit.UI.Events.IdlingEventArgs e)
+        {
+            if (IntentarOcultar() || ++_intentos >= 20) _app.Idling -= AlEsperar;
         }
 
         public Result OnShutdown(UIControlledApplication app)
