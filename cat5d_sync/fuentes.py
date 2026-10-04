@@ -126,11 +126,22 @@ def _rvt_recursivo(aps, pid, folder_id, excluir_re, ruta):
         yield from _rvt_recursivo(aps, pid, c["id"], excluir_re, f"{ruta}/{c['name']}")
 
 
-def catalogo_modelos(aps, cfg, cache_path):
+def catalogo_modelos(aps, cfg, cache_path, requeridos=None):
     """-> ({item_id: {proyecto, modelo, ruta, archivo}}, avisos)
     Todos los .rvt dentro de 011_WIP de cada proyecto de VENTAS (misma busqueda que PUBLICACIONES,
-    sin pedir versiones). Si ACC no responde, se usa el ultimo catalogo guardado en cache."""
+    sin pedir versiones). Si ACC no responde, se usa el ultimo catalogo guardado en cache.
+    Para no recorrer ACC en cada corrida: si el catalogo guardado tiene menos de 'catalogo_horas' (24 por
+    defecto) y ya incluye todos los modelos sincronizados (requeridos), se usa tal cual."""
     cache = Cache(cache_path)
+    horas = float(cfg.get("catalogo_horas", 24))
+    try:
+        edad = (datetime.now() - datetime.fromisoformat(cache.d["guardado"])).total_seconds() / 3600
+        faltan = set(requeridos or []) - set(cache.d.get("modelos") or {}) - set(cache.d.get("fuera") or [])
+        if cache.d.get("modelos") and edad < horas and not faltan:
+            log.info("Catalogo de modelos de cache (%.1f h): %d modelos", edad, len(cache.d["modelos"]))
+            return cache.d["modelos"], []
+    except Exception:
+        pass
     try:
         a = cfg["aps"]
         hub, pid = aps.con_b(a["account_id"]), aps.con_b(a["project_id"])
@@ -154,7 +165,8 @@ def catalogo_modelos(aps, cfg, cache_path):
                 modelos[it["item_id"]] = {"proyecto": nombre_p, "modelo": modelo_sin_ext(it["name"]),
                                           "ruta": it["ruta"], "archivo": it["name"]}
         log.info("ACC: %d modelos .rvt en %s de %d proyectos", len(modelos), sub, len(proyectos))
-        cache.d = {"guardado": datetime.now().isoformat(timespec="seconds"), "modelos": modelos}
+        cache.d = {"guardado": datetime.now().isoformat(timespec="seconds"), "modelos": modelos,
+                   "fuera": sorted(set(requeridos or []) - set(modelos))}
         cache.save()
         return modelos, []
     except Exception as e:

@@ -29,10 +29,5 @@
   "max_filas_ok_por_tarjeta": 2000,
   "cache_excels": "cache/excels",
   "_integrantes_prueba": "Solo para pruebas: personas que cuentan aunque no esten en el Excel de equipos. Dejar [] al terminar.",
-  "integrantes_prueba": [
-    {
-      "integrante": "JUAN PABLO REYES MEDINA",
-      "equipo": "PRUEBAS"
-    }
-  ]
+  "integrantes_prueba": []
 }

@@ -40,7 +40,8 @@ def escribir(resultados, avisos, cfg, ruta, roster):
             rel = f"{mod.ID}/{mes}/{comun.slug(proyecto)}.html"
             comun.escribir_atomico(carpeta / rel, html, si_cambia=True)
             paginas[f"{mes}/{comun.slug(proyecto)}"] = {"href": f"{carpeta.name}/{rel}", "peso": len(html.encode("utf-8"))}
-        filas = [{k: v for k, v in m.items() if k not in ("results", "item_id")} for m in modelos]
+        filas = [{k: v for k, v in m.items() if k not in ("results", "item_id", "val_meta")}
+                 for m in modelos]
         modulos.append({"id": mod.ID, "nombre": mod.NOMBRE, "descripcion": mod.DESCRIPCION, "tarjeta": mod.TARJETA,
                         "paginas": paginas, "rows": filas})
         resumen.append(f"{mod.NOMBRE}: {len(modelos)} modelo-mes en {len(paginas)} reportes de proyecto")

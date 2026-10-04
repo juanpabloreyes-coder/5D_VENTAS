@@ -142,7 +142,7 @@ function render(){
     lst.forEach(r => resp[r.responsable] = (resp[r.responsable] || 0) + 1);
     const t = MOD.tarjeta || {pct:{}, cifras:[]};
     return {proyecto:p, href:pag.href || '#', peso:pag.peso || 0, modelos:lst.length, todos,
-      pct: porc(lst, t.pct.num, t.pct.den), pctLabel: t.pct.etiqueta || '%',
+      pct: t.pct.promedio ? Math.round(t.pct.promedio.reduce((a, x) => a + porc(lst, x[0], x[1]), 0) / t.pct.promedio.length) : porc(lst, t.pct.num, t.pct.den), pctLabel: t.pct.etiqueta || '%',
       cifras: (t.cifras || []).map(c => ({v: cifra(lst, c), etiqueta: c.etiqueta, clase: c.clase || ''})),
       fecha:lst.map(r=>r.fecha).sort().pop(),
       resp:Object.entries(resp).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])).map(x=>x[0])};

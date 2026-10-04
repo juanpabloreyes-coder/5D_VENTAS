@@ -20,6 +20,7 @@ from pathlib import Path
 from . import comun, mod_base_datos, mod_exportado
 from .aps import APS
 from .fuentes import Personas, catalogo_modelos, leer_equipos
+from . import validacion5d
 from .reporte import escribir
 
 # Modulos del reporte 5D (una pestana cada uno). Para una metrica nueva: agregar aqui su mod_<id>.py.
@@ -63,13 +64,22 @@ def procesar(cfg, escribir_salida=True):
     if not cid or not sec:
         raise SystemExit("Falta APS_CLIENT_ID / APS_CLIENT_SECRET (las mismas variables que usan los otros reportes).")
     aps = APS(cid, sec)
-    catalogo, av = catalogo_modelos(aps, cfg, _ruta(cfg.get("cache", "cache/modelos_acc.json")))
-    avisos += av
     carpeta_5d = _ruta(cfg["carpeta_5d"])
+    cfg["_carpeta_5d"] = str(carpeta_5d)
+    cfg["_cache_carpetas"] = str(_ruta("cache/carpetas_catalogos.json"))
+    # Validaciones guardadas desde el reporte (llegan a Descargas) -> 03374_5D_VENTAS\validaciones
+    descargas = cfg.get("carpeta_descargas") or str(Path.home() / "Downloads")
+    if escribir_salida:
+        recogidas = validacion5d.recoger_descargas(carpeta_5d, descargas)
+        if recogidas:
+            print("Validaciones recogidas de Descargas:", ", ".join(recogidas))
+    grupos = comun.leer_registros(carpeta_5d / "resultados", tz, cfg["aps"]["project_id"])
+    catalogo, av = catalogo_modelos(aps, cfg, _ruta(cfg.get("cache", "cache/modelos_acc.json")),
+                                    requeridos={iid for _, iid in grupos})
+    avisos += av
     if escribir_salida:
         _escribir_mapa(carpeta_5d, catalogo)
 
-    grupos = comun.leer_registros(carpeta_5d / "resultados", tz, cfg["aps"]["project_id"])
 
     xlsx = _ruta(cfg["equipos_xlsx"])
     roster = []

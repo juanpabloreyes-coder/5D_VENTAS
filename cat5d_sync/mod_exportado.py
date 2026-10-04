@@ -20,7 +20,7 @@ from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 
-from . import comun
+from . import comun, validacion5d
 from .checker_html import build_html
 from .fuentes import modelo_sin_ext, parse_fecha
 
@@ -28,9 +28,10 @@ log = logging.getLogger("cat5d_sync.exportado")
 
 ID = "exportado"
 NOMBRE = "Exportado vs Revit"
-DESCRIPCION = ("Auditoría del Excel de presupuesto (02121_CATALOGOS) contra lo que se exportó de Revit (integridad) "
+DESCRIPCION = ("Auditoría del Catálogo Exportado (02121_CATALOGOS) contra lo que se exportó de Revit (integridad) "
                "y contra el Revit actual (vigencia). Última exportación del mes.")
-TARJETA = {"pct": {"num": "iguales", "den": "filas", "etiqueta": "% integridad"},
+TARJETA = {"pct": {"num": "iguales", "den": "filas", "promedio": [["iguales", "filas"], ["vig_iguales", "vig_filas"]],
+                   "etiqueta": "% general"},
            "cifras": [{"tipo": "pct", "num": "iguales", "den": "filas", "etiqueta": "integridad", "clase": "ok"},
                       {"tipo": "pct", "num": "vig_iguales", "den": "vig_filas", "etiqueta": "vigencia", "clase": "rev"},
                       {"campo": "modificadas", "etiqueta": "filas modif.", "clase": "mal"}]}
@@ -53,7 +54,29 @@ def leer_fotos(carpeta):
 
 
 def _carpetas_catalogos(aps, cfg):
-    """[(proyecto, folder_id)] de 02121_CATALOGOS en cada proyecto de VENTAS (Data Management)."""
+    """[(proyecto, folder_id)] de 02121_CATALOGOS en cada proyecto de VENTAS (Data Management).
+    Se guarda en cache 'catalogo_horas' (24 por defecto) para no recorrer las carpetas en cada corrida."""
+    a = cfg["aps"]
+    pid = aps.con_b(a["project_id"])
+    cache_p = Path(cfg.get("_cache_carpetas", "cache/carpetas_catalogos.json"))
+    try:
+        c = json.loads(cache_p.read_text(encoding="utf-8"))
+        edad = (datetime.now() - datetime.fromisoformat(c["guardado"])).total_seconds() / 3600
+        if edad < float(cfg.get("catalogo_horas", 24)):
+            return pid, [tuple(x) for x in c["carpetas"]]
+    except Exception:
+        pass
+    pid, salida = _carpetas_catalogos_acc(aps, cfg)
+    try:
+        cache_p.parent.mkdir(parents=True, exist_ok=True)
+        cache_p.write_text(json.dumps({"guardado": datetime.now().isoformat(timespec="seconds"), "carpetas": salida},
+                                      ensure_ascii=False), encoding="utf-8")
+    except Exception:
+        pass
+    return pid, salida
+
+
+def _carpetas_catalogos_acc(aps, cfg):
     a = cfg["aps"]
     hub, pid = aps.con_b(a["account_id"]), aps.con_b(a["project_id"])
     raices = [n.lower() for n in cfg.get("raiz_nombres", ["Project Files"])]
@@ -160,14 +183,14 @@ def _celdas(a, b):
         x = a[k] if k < len(a) else ""
         y = b[k] if k < len(b) else ""
         if x != y:
-            out.append((_col(k), x[:120], y[:120]))
+            out.append((_col(k), x, y))
     return out
 
 
 def _ref(fila, desde=1):
     """Codigo y concepto de una fila (para ubicarla): columnas B y C del presupuesto."""
     partes = [x for x in fila[desde:desde + 2] if x]
-    return " · ".join(partes)[:60]
+    return " · ".join(partes)
 
 
 def integridad(foto_contenido, contenido):
@@ -187,14 +210,14 @@ def integridad(foto_contenido, contenido):
                     filas_dif.append([hoja, str(10 + i), col, _ref(a or b), x or "(vacío)", y or "(vacío)"])
         else:
             if act is None:
-                pestanas_dif.append([hoja, "Pestaña eliminada del Excel", ""])
+                pestanas_dif.append([hoja, "Pestaña eliminada del Catálogo Exportado", ""])
                 continue
             _, _, difs = _comparar(ref, act)
             if difs:
                 pestanas_dif.append([hoja, f"{len(difs)} fila(s) distinta(s)", ", ".join(str(1 + i) for i, _, _ in difs[:12])])
     for hoja in contenido:
         if hoja not in foto_contenido:
-            pestanas_dif.append([hoja, "Pestaña agregada al Excel", ""])
+            pestanas_dif.append([hoja, "Pestaña agregada al Catálogo Exportado", ""])
     return total, iguales, filas_dif, pestanas_dif, filas_cambiadas
 
 
@@ -210,7 +233,7 @@ def vigencia(tablas_exportadas, tablas_actuales):
             continue
         if nombre not in ref:
             total += len(act[nombre])
-            difs.append([nombre, "", "", "", "", "Tabla nueva en Revit (no está en el Excel)"])
+            difs.append([nombre, "", "", "", "", "Tabla nueva en Revit (no está en el Catálogo Exportado)"])
             continue
         t, ig, d = _comparar(ref[nombre], act[nombre])
         total += t
@@ -249,7 +272,7 @@ def construir(grupos, catalogo, personas, cfg, tz, aps=None, excels=None, fotos=
         if clave not in exportaciones or fecha > exportaciones[clave]["fecha"]:
             exportaciones[clave] = {"fecha": fecha, "meta": meta, "contenido": contenido, "excel": ex}
     for proy, archivos in sin_huella.items():
-        avisos.append(f"{proy}: {len(archivos)} Excel sin huella (generados con el botón anterior, no se pueden auditar): "
+        avisos.append(f"{proy}: {len(archivos)} Catálogo(s) Exportado(s) sin huella (generados con el botón anterior, no se pueden auditar): "
                       + ", ".join(sorted(archivos)[:5]))
 
     # Sincronizaciones por modelo (todas, para la vigencia) y por mes (para el responsable)
@@ -311,6 +334,8 @@ def construir(grupos, catalogo, personas, cfg, tz, aps=None, excels=None, fotos=
             filas_tab = sum(len(t["filas"]) for t in (foto.get("tablas_5d") or []))
             vt, vi, vdif, vig_fecha = filas_tab, filas_tab, [], None
 
+        # Exportado vs Revit no se valida a mano: las diferencias se corrigen en Revit y se vuelve a exportar.
+        iguales_raw, vi_raw = iguales, vi
         pct = int(round(100.0 * iguales / total)) if total else 100
         pct_v = int(round(100.0 * vi / vt)) if vt else 100
         modelos.append({
@@ -327,11 +352,17 @@ def construir(grupos, catalogo, personas, cfg, tz, aps=None, excels=None, fotos=
             "vig_fecha": vig_fecha.isoformat(timespec="minutes") if vig_fecha else "",
             "results": _results(meta, e, versiones, total, iguales, filas_dif, pestanas_dif, modificaron,
                                 vt, vi, vdif, vig_fecha, pct, pct_v),
+            "val_meta": {"modo": "exp", "modelo": cat["modelo"], "item_id": iid,
+                         "archivo": validacion5d.archivo("", iid).name,
+                         "int": {"total": total, "raw": iguales_raw, "iguales": iguales},
+                         "vig": {"total": vt, "raw": vi_raw, "iguales": vi},
+                         "revisados": validacion5d.leer_revisados(cfg.get("_carpeta_5d"), iid)},
         })
     return modelos, avisos
 
 
-def _results(meta, e, versiones, total, iguales, filas_dif, pestanas_dif, modificaron, vt, vi, vdif, vig_fecha, pct, pct_v):
+def _results(meta, e, versiones, total, iguales, filas_dif, pestanas_dif, modificaron, vt, vi, vdif, vig_fecha, pct, pct_v,
+             val_int=None, val_vig=None):
     r = []
     r.append({"section": "RESUMEN", "name": "Exportación", "status": "INFO", "score": False,
               "summary": f"{e['excel']['archivo']} · {e['fecha'].strftime('%d/%m/%Y %H:%M')} · generó "
@@ -345,17 +376,18 @@ def _results(meta, e, versiones, total, iguales, filas_dif, pestanas_dif, modifi
                           f"(sincronización del {vig_fecha.strftime('%d/%m/%Y %H:%M')})." if vig_fecha else
                           "Vigente: nadie ha sincronizado el modelo después de la exportación."),
               "headers": [], "rows": []})
-    r.append({"section": "INTEGRIDAD", "name": "FILAS MODIFICADAS EN EL EXCEL", "status": "FAIL" if filas_dif else "PASS",
+    r.append({"section": "INTEGRIDAD", "name": "FILAS MODIFICADAS EN EL CATÁLOGO EXPORTADO", "status": "FAIL" if filas_dif else "PASS",
               "score": False,
               "summary": (f"{total - iguales} fila(s) de Hoja1/Hoja2 distintas a lo exportado ({len(filas_dif)} celda(s))"
                           + (f" · modificó: {', '.join(modificaron)}." if modificaron else ".")) if filas_dif
               else "Hoja1 y Hoja2 coinciden exactamente con lo exportado desde Revit.",
-              "headers": ["Hoja", "Fila", "Columna", "Concepto", "Exportado", "En el Excel"], "rows": filas_dif})
+              "headers": ["Hoja", "Fila", "Columna", "Concepto", "Revit", "Exportado"], "rows": filas_dif,
+              "resaltar": ["Columna"], "diff": ("Revit", "Exportado")})
     r.append({"section": "INTEGRIDAD", "name": "PESTAÑAS MODIFICADAS", "status": "FAIL" if pestanas_dif else "PASS",
               "score": False, "summary": f"Pestañas de tablas con cambios: {len(pestanas_dif)}" if pestanas_dif
               else "Las pestañas de las tablas no tienen cambios.",
-              "headers": ["Pestaña", "Cambio", "Filas"], "rows": pestanas_dif})
-    r.append({"section": "INTEGRIDAD", "name": "VERSIONES DEL EXCEL EN ACC", "status": "INFO", "score": False,
+              "headers": ["Pestaña", "Cambio", "Filas"], "rows": pestanas_dif, "resaltar": ["Cambio"]})
+    r.append({"section": "INTEGRIDAD", "name": "VERSIONES DEL CATÁLOGO EXPORTADO EN ACC", "status": "INFO", "score": False,
               "summary": f"{len(versiones)} versión(es). Cada exportación del botón sube una versión; las que se suben después de la última exportación son cambios hechos fuera de Revit.",
               "headers": ["Versión", "Fecha", "Subió"],
               "rows": [[str(v.get("numero")), str(v.get("creado") or "")[:16].replace("T", " "), v.get("creado_por") or ""]
@@ -364,7 +396,16 @@ def _results(meta, e, versiones, total, iguales, filas_dif, pestanas_dif, modifi
               "status": "FAIL" if vdif else "PASS", "score": False,
               "summary": f"{vt - vi} fila(s) cambiaron en Revit después de la exportación ({len(vdif)} celda(s)): hay que volver a exportar."
               if vdif else "Las tablas 5D de Revit siguen igual que en la exportación.",
-              "headers": ["Tabla", "Fila", "Columna", "Concepto", "Exportado", "Revit actual"], "rows": vdif})
+              "headers": ["Tabla", "Fila", "Columna", "Concepto", "Exportado", "Revit"], "rows": vdif,
+              "resaltar": ["Columna"], "diff": ("Exportado", "Revit")})
+    for x in r:  # identidad y firma de cada recuadro (marca "Revisado")
+        x["key"] = f"{x['section']}|{x['name']}"
+        x["sig"] = validacion5d.firma(x["rows"] or x["summary"])
+        if x.get("diff"):  # la comparacion (Revit vs Exportado, apilada) va antes del Concepto para verla sin desplazar
+            h = x["headers"]
+            orden = [h.index(c) for c in h if c != "Concepto"] + [h.index("Concepto")]
+            x["headers"] = [h[i] for i in orden]
+            x["rows"] = [[f[i] if i < len(f) else "" for i in orden] for f in x["rows"]]
     return r
 
 
@@ -376,9 +417,10 @@ def pagina(mes, proyecto, modelos, cfg):
         "path": f"Responsable: {m['responsable']} · Generó: {m['genero'] or '-'}"
                 + (f" · Modificó: {', '.join(m['modificaron'])}" if m["modificaron"] else ""),
         "kind": "HOST", "kind_label": m["disciplina"], "results": m["results"],
-        "percent_fijo": m["percent"], "failed_fijo": m["modificadas"] + m["pestanas_modificadas"] + (1 if m["pct_vigencia"] < 100 else 0),
+        "percent_fijo": int(round((m["percent"] + m["pct_vigencia"]) / 2)), "failed_fijo": m["modificadas"] + m["pestanas_modificadas"] + (1 if m["pct_vigencia"] < 100 else 0),
         "responsable": m["responsable"], "participantes": m["participantes"],
         "fecha_auditoria": datetime.fromisoformat(m["fecha"]).strftime("%d/%m/%Y %H:%M"),
+        "val_meta": m.get("val_meta"),
     } for m in modelos]
     filas = sum(m["filas"] for m in modelos)
     iguales = sum(m["iguales"] for m in modelos)
@@ -386,18 +428,20 @@ def pagina(mes, proyecto, modelos, cfg):
     vi = sum(m["vig_iguales"] for m in modelos)
     pct = int(round(100.0 * iguales / filas)) if filas else 100
     pct_v = int(round(100.0 * vi / vt)) if vt else 100
+    pct_g = int(round((100.0 * iguales / filas if filas else 100) / 2 + (100.0 * vi / vt if vt else 100) / 2))
     raiz = (cfg.get("raiz_nombres") or ["Project Files"])[0]
     ruta = f"{cfg.get('proyecto_acc', 'VENTAS GCP')} / {raiz} / {proyecto} / 02121_CATALOGOS · {mes}"
     resumen = {
         "titulo": "Exportado vs Revit.", "subtitulo": "Integridad del presupuesto.",
-        "copy": "Comprueba que el Excel de presupuesto refleje exactamente lo que hay en Revit: que nadie lo haya "
+        "copy": "Comprueba que el Catálogo Exportado refleje exactamente lo que hay en Revit: que nadie lo haya "
                 "modificado después de exportarlo (integridad) y que el modelo no haya cambiado desde entonces (vigencia).",
-        "percent": pct, "score_label": "% INTEGRIDAD",
-        "score_class": "score-red" if pct <= 70 else "score-orange" if pct < 100 else "score-green",
-        "caption": f"{iguales} de {filas} filas iguales a lo exportado<br>· vigencia {pct_v}%",
+        "percent": pct_g, "score_label": "% GENERAL",
+        "score_class": "score-red" if pct_g <= 70 else "score-orange" if pct_g < 100 else "score-green",
+        "caption": f"Promedio de integridad {pct}% y vigencia {pct_v}%",
         "metricas": [("Modelos exportados", len(modelos), "total"), ("% Integridad", f"{pct}%", "pass" if pct == 100 else "fail"),
                      ("% Vigencia", f"{pct_v}%", "pass" if pct_v == 100 else "fail"),
                      ("Filas modificadas", sum(m["modificadas"] for m in modelos), "fail")],
     }
     return build_html(proyecto, ruta, comun.fecha_larga(ultima), reports, resumen=resumen,
+                      extra_css=validacion5d.ESTILO, extra_script=validacion5d.SCRIPT,
                       footer_note=f"Exportado vs Revit · última exportación del mes · {comun.fecha_larga(ultima)}")

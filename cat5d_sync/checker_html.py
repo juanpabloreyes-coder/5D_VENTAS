@@ -22,27 +22,115 @@ def html_escape(text):
                 .replace('"', "&quot;"))
 
 
-def make_table(headers, rows):
-    if not rows:
+def diff_html(a, b, ignorar_mayusculas=False):
+    """Resalta los caracteres distintos entre dos textos -> (html_a, html_b)."""
+    import difflib
+    a, b = safe_str(a), safe_str(b)
+    if a in ("(vacío)", "") or b in ("(vacío)", ""):
+        ma = '<mark class="dx">{}</mark>'.format(html_escape(a)) if a and a != "(vacío)" else html_escape(a)
+        mb = '<mark class="dx">{}</mark>'.format(html_escape(b)) if b and b != "(vacío)" else html_escape(b)
+        return ma, mb
+    ua, ub = (a.upper(), b.upper()) if ignorar_mayusculas else (a, b)
+    if len(ua) != len(a) or len(ub) != len(b):
+        ua, ub = a, b
+    sm = difflib.SequenceMatcher(None, ua, ub, autojunk=False)
+    pa, pb = [], []
+    for op, i1, i2, j1, j2 in sm.get_opcodes():
+        if op == "equal":
+            pa.append(html_escape(a[i1:i2])); pb.append(html_escape(b[j1:j2]))
+        else:
+            if i2 > i1:
+                pa.append('<mark class="dx">{}</mark>'.format(html_escape(a[i1:i2])))
+            if j2 > j1:
+                pb.append('<mark class="dx">{}</mark>'.format(html_escape(b[j1:j2])))
+    return "".join(pa), "".join(pb)
+
+
+def make_table(headers, rows, val=None, resaltar=None, tono="", diff=None, forzar=False, cmp=None, ref=None, ocultas=None):
+    if not rows and not forzar:
         return "<p>Sin resultados.</p>"
+    ia = headers.index(diff[0]) if diff and diff[0] in headers else None
+    ib = headers.index(diff[1]) if diff and diff[1] in headers else None
+    con_val = forzar or (bool(val) and any(val))
+    hl = set(resaltar or [])
+    clase_hl = ' class="hl{}"'.format(" hl-rev" if tono == "rev" else "")
 
     parts = []
     parts.append("<table>")
     parts.append("<tr>")
-    for h in headers:
-        parts.append("<th>{}</th>".format(html_escape(h)))
+    if con_val:
+        parts.append("<th></th><th>Estatus</th>")
+    # Comparacion (diff): las dos columnas se apilan en una sola celda, Revit arriba, como en Base de Datos vs Revit
+    pila = ia is not None and ib is not None
+    if pila:
+        arriba, abajo = (ia, ib) if headers[ia] == "Revit" or headers[ib] != "Revit" else (ib, ia)
+        p1, p2 = min(ia, ib), max(ia, ib)
+    for k, h in enumerate(headers):
+        if pila and k == p2:
+            continue
+        if pila and k == p1:
+            parts.append('<th class="hl dxcol">{} vs {}</th>'.format(html_escape(headers[arriba]), html_escape(headers[abajo])))
+            continue
+        cls = clase_hl if h in hl else ""
+        parts.append("<th{}>{}</th>".format(cls, html_escape(h)))
     parts.append("</tr>")
 
-    for row in rows:
-        parts.append("<tr>")
-        for c in row:
-            parts.append("<td>{}</td>".format(html_escape(c)))
+    for i, row in enumerate(rows):
+        v = val[i] if con_val and i < len(val) else None
+        if v:
+            tags = ('<span class="val-tag">Review</span>' if v.get("rev") else "") + \
+                   ('<span class="val-tag">Sin Control</span>' if v.get("sc") else "")
+            extra = ""
+            for k_attr, k_val in (("g", "g"), ("sec", "sec"), ("home", "home")):
+                if v.get(k_val):
+                    extra += ' data-{}="{}"'.format(k_attr, html_escape(v[k_val]))
+            parts.append('<tr class="val-row st-{e}" data-h="{h}" data-o="{o}" data-e0="{e}"{x}>'.format(
+                e=html_escape(v["e"]), h=html_escape(v["h"]), o=html_escape(v["o"]), x=extra))
+            parts.append('<td><input type="checkbox" class="val-sel" aria-label="Seleccionar concepto"></td><td><div class="val-cell"><select class="val-st" aria-label="Estatus">'
+                         '<option value="OK">OK</option><option value="REVIEW">Review</option>'
+                         '<option value="ERROR">Error</option></select>{}</div></td>'.format('<div class="val-tags">{}</div>'.format(tags) if tags else ""))
+        else:
+            rf = ref[i] if ref and i < len(ref) else None
+            oc = bool(ocultas and i < len(ocultas) and ocultas[i])
+            parts.append("<tr{}{}>".format(' data-ref="{}"'.format(html_escape(rf)) if rf else "",
+                                           ' style="display:none"' if oc else ""))
+            if con_val:
+                parts.append("<td></td><td></td>")
+        dif = diff_html(row[ia], row[ib]) if ia is not None and ib is not None and ia < len(row) and ib < len(row) else None
+        cm = cmp[i] if cmp and i < len(cmp) and cmp[i] else {}
+        for j, c in enumerate(row):
+            if j in cm:
+                x = cm[j]
+                if x.get("diff"):
+                    ra, rc = diff_html(c, x["v"], ignorar_mayusculas=True)
+                else:
+                    ra, rc = html_escape(c) or "—", html_escape(x["v"])
+                parts.append('<td class="cmpcell"><div class="cmp"><span class="cmp-r"><em>Revit</em>{}</span>'
+                             '<span class="cmp-c"><em>Catálogo</em>{}</span></div></td>'.format(ra or "—", rc))
+                continue
+            if pila and j == p2:
+                continue
+            if pila and j == p1:
+                if dif:
+                    tx = {ia: dif[0], ib: dif[1]}
+                else:
+                    tx = {ia: html_escape(row[ia]) if ia < len(row) else "", ib: html_escape(row[ib]) if ib < len(row) else ""}
+                parts.append('<td class="cmpcell dxcell"><div class="cmp"><span class="cmp-r"><em>{}</em>{}</span>'
+                             '<span class="cmp-c"><em>{}</em>{}</span></div></td>'.format(
+                                 html_escape(headers[arriba]), tx[arriba] or "—", html_escape(headers[abajo]), tx[abajo] or "—"))
+                continue
+            marcar = j < len(headers) and headers[j] in hl
+            if marcar:
+                parts.append('<td{}><span class="hl-chip">{}</span></td>'.format(clase_hl, html_escape(c) if c not in (None, "") else "—"))
+            else:
+                parts.append("<td>{}</td>".format(html_escape(c)))
         parts.append("</tr>")
     parts.append("</table>")
     return "".join(parts)
 
 
-def build_html(project_name, file_path, report_date, model_reports, unavailable_links=None, footer_note="", resumen=None):
+def build_html(project_name, file_path, report_date, model_reports, unavailable_links=None, footer_note="", resumen=None,
+               extra_css="", extra_script=""):
     """model_reports: [{name, path, kind_label, results, participantes:[{integrante, equipo, syncs}], responsable}]"""
     unavailable_links = unavailable_links or []
 
@@ -588,6 +676,10 @@ def build_html(project_name, file_path, report_date, model_reports, unavailable_
             details { break-inside: auto; }
         }
     </style>
+""")
+    if extra_css:
+        parts.append("<style>" + extra_css + "</style>")
+    parts.append("""
 </head>
 <body>
 """)
@@ -659,6 +751,12 @@ def build_html(project_name, file_path, report_date, model_reports, unavailable_
     parts.append('<label class="search-wrap">{}<span class="sr-only"></span><input class="search-input" id="search" type="search" autocomplete="off" placeholder="Buscar check, sección o resultado…" aria-label="Buscar en el reporte"><button class="clear-search" id="clear-search" type="button" aria-label="Limpiar búsqueda">{}</button></label>'.format(search_icon, close_icon))
     parts.append('<div class="toolbar-actions"><div class="segmented" role="group" aria-label="Filtrar resultados"><button class="segment active" type="button" data-filter="ALL">Todos</button><button class="segment" type="button" data-filter="PASS">Correctos</button><button class="segment" type="button" data-filter="FAIL">Atención</button></div>')
     parts.append('<button class="pill-button" id="toggle-details" type="button">{}<span>Expandir</span></button>'.format(expand_icon))
+    if any(rp.get("val_meta") for rp in model_reports):
+        hay_val = any(any(r.get("val") or []) for rp in model_reports for r in rp.get("results", []))
+        parts.append('<button class="pill-button" id="val-save" type="button"><span>{}</span></button>'.format(
+            "Guardar validaciones" if hay_val else "Guardar revisados"))
+        if any(any(r.get("val") or []) for rp in model_reports for r in rp.get("results", [])):
+            parts.append('<button class="pill-button val-danger" id="val-clear" type="button"><span>Limpiar validaciones</span></button>')
     parts.append('<button class="pill-button primary" id="print-report" type="button">{}<span>Imprimir</span></button></div>'.format(print_icon))
     parts.append('</section>')
     parts.append('<p class="results-note" id="results-note" aria-live="polite"></p>')
@@ -674,10 +772,16 @@ def build_html(project_name, file_path, report_date, model_reports, unavailable_
     for model_index, report in enumerate(model_reports):
         report_results = report.get("results", [])
         active_class = " active" if model_index == 0 else ""
-        parts.append('<div class="model-report{}" id="model-report-{}" data-model-index="{}" role="tabpanel">'.format(
-            active_class, model_index, model_index))
+        val_attr = ""
+        if report.get("val_meta"):
+            import json as _json
+            val_attr = ' data-val="{}"'.format(html_escape(_json.dumps(report["val_meta"], ensure_ascii=False)))
+        parts.append('<div class="model-report{}" id="model-report-{}" data-model-index="{}" role="tabpanel"{}>'.format(
+            active_class, model_index, model_index, val_attr))
         if report.get("participantes"):
             parts.append(people_panel(report))
+        if report.get("extra_html"):
+            parts.append(report["extra_html"])
         for index, sec in enumerate(sections):
             section_results = [x for x in report_results if x["section"] == sec]
             if not section_results:
@@ -690,22 +794,44 @@ def build_html(project_name, file_path, report_date, model_reports, unavailable_
             for r in section_results:
                 raw_status = r["status"] if r["status"] in ["PASS", "FAIL", "INFO"] else "INFO"
                 css = "pass" if raw_status == "PASS" else "fail" if raw_status == "FAIL" else "info"
-                table_class = " has-table" if r["rows"] else ""
+                val_card = bool(report.get("val_meta")) and r.get("val_card")
+                table_class = " has-table" if (r["rows"] or val_card) else ""
+                if val_card and not r["rows"]:
+                    table_class += " val-empty"
                 search_text = "{} {} {} {} {}".format(report.get("name", ""), sec, r["name"], r["summary"], raw_status).lower()
-                parts.append('<article class="check-card {}{} reveal" data-status="{}" data-search="{}">'.format(
-                    css, table_class, raw_status, html_escape(search_text)))
+                marca = bool(report.get("val_meta")) and r.get("key")
+                attrs = ' data-key="{}" data-sig="{}"'.format(html_escape(r["key"]), html_escape(r.get("sig", ""))) if marca else ""
+                parts.append('<article class="check-card {}{} reveal" data-status="{}" data-search="{}"{}>'.format(
+                    css, table_class, raw_status, html_escape(search_text), attrs))
                 parts.append('<div class="card-top"><div class="status-icon">{}</div><div class="card-copy">'.format(status_icons.get(raw_status, status_icons["INFO"])))
-                parts.append('<div class="status-row"><span class="status-pill">{}</span><span class="result-count">{}</span></div>'.format(
-                    status_labels.get(raw_status, "Información"), "{} resultados".format(len(r["rows"])) if r["rows"] else "Sin incidencias"))
+                n_vis = r.get("visibles", len(r["rows"]))
+                conteo = '<span class="result-count">{}</span>'.format("{} resultados".format(n_vis) if n_vis else "Sin incidencias")
+                if marca:
+                    conteo = '<span class="status-right">{}<label class="rev-mark" title="Marca este recuadro como revisado"><input type="checkbox" class="rev-chk"><span class="rev-switch"></span><span class="rev-text">Revisado</span></label></span>'.format(conteo)
+                parts.append('<div class="status-row"><span class="status-pill">{}</span>{}</div>'.format(
+                    status_labels.get(raw_status, "Información"), conteo))
                 parts.append('<h3 class="check-title">{}</h3>'.format(html_escape(r["name"])))
                 parts.append('<p class="check-summary">{}</p>'.format(html_escape(r["summary"])))
                 parts.append('</div></div>')
-                if r["rows"]:
-                    parts.append('<details><summary><span>Ver {} elementos</span>{}</summary><div class="table-scroll">'.format(len(r["rows"]), chevron_icon))
-                    parts.append(make_table(r["headers"], r["rows"]))
+                if r["rows"] or val_card:
+                    parts.append('<details><summary><span>Ver {} elementos</span>{}</summary><div class="table-scroll">'.format(r.get("visibles", len(r["rows"])), chevron_icon))
+                    if (r.get("val") and any(r["val"])) or val_card:
+                        parts.append('<div class="val-bar"><label class="val-check-all"><input type="checkbox" class="val-all"><span>Seleccionar todos</span></label>'
+                                     '<span class="val-count" data-n="0">0 seleccionados</span><span class="val-grow"></span>'
+                                     '<span class="val-actions-label">Marcar como</span>'
+                                     '<button class="val-chip ok" type="button" data-val-bulk="OK"><i></i>OK</button>'
+                                     '<button class="val-chip rev" type="button" data-val-bulk="REVIEW"><i></i>Review</button>'
+                                     '<button class="val-chip err" type="button" data-val-bulk="ERROR"><i></i>Error</button></div>')
+                    parts.append(make_table(r["headers"], r["rows"], r.get("val"), r.get("resaltar"), r.get("resaltar_tono", ""), r.get("diff"), forzar=val_card, cmp=r.get("cmp"),
+                                            ref=r.get("ref"), ocultas=r.get("ocultas")))
                     parts.append('</div></details>')
                 parts.append('</article>')
             parts.append('</div></section>')
+        if report.get("val_meta") and any(x.get("key") for x in report_results):
+            # Resumen de checks al final (lo llena el script con el estado "Revisado" de cada recuadro)
+            parts.append('<section class="rev-sum" data-rev-sum><header class="section-heading"><div><p class="section-kicker">{} · Resumen</p>'
+                         '<h2 class="section-title">Resumen de checks</h2></div><span class="section-count rev-sum-count"></span></header>'
+                         '<div class="rev-sum-box"></div></section>'.format(html_escape(report.get("name", "Modelo"))))
         parts.append('</div>')
 
     parts.append('<div class="empty-state" id="empty-state"><div class="empty-state-icon">{}</div><h2>Sin coincidencias</h2><p>Prueba con otra búsqueda o cambia el filtro seleccionado.</p></div>'.format(search_icon))
@@ -880,6 +1006,10 @@ def build_html(project_name, file_path, report_date, model_reports, unavailable_
         applyFilters();
     }());
     </script>
+""")
+    if extra_script:
+        parts.append("<script>" + extra_script + "</script>")
+    parts.append("""
 </body>
 </html>""")
     return "".join(parts)
