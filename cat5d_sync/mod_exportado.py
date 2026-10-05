@@ -432,8 +432,9 @@ def pagina(mes, proyecto, modelos, cfg):
     ruta = f"{cfg.get('proyecto_acc', 'VENTAS GCP')} / {raiz} / {proyecto} / 02121_CATALOGOS · {mes}"
     resumen = {
         "titulo": "Exportado vs Revit.", "subtitulo": "Integridad del presupuesto.",
-        "copy": "Comprueba que el Catálogo Exportado refleje exactamente lo que hay en Revit: que nadie lo haya "
-                "modificado después de exportarlo (integridad) y que el modelo no haya cambiado desde entonces (vigencia).",
+        "copy": "Finalidad: que el Catálogo Exportado refleje exactamente lo que hay en Revit: que nadie lo haya "
+                "modificado después de exportarlo (integridad) y que el modelo no haya cambiado desde entonces (vigencia). "
+                "El porcentaje general promedia integridad y vigencia. Meta: superar el 80%.",
         "percent": pct_g, "score_label": "% GENERAL",
         "score_class": "score-red" if pct_g <= 70 else "score-orange" if pct_g < 100 else "score-green",
         "caption": f"Promedio de integridad {pct}% y vigencia {pct_v}%",

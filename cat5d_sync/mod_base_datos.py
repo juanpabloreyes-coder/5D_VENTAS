@@ -302,8 +302,9 @@ def pagina(mes, proyecto, modelos, cfg):
     pct = int(round(100.0 * ok / ev)) if ev else 0
     resumen = {
         "titulo": "Base de Datos vs Revit.", "subtitulo": "Conceptos 5D.",
-        "copy": "Revisa que los conceptos usados en Revit coincidan con la Base de Datos de Presupuestos: "
-                "código, control, descripción, unidad y partida de cada concepto Base, AC, REC y ADD.",
+        "copy": "Finalidad: que los conceptos usados en Revit coincidan con la Base de Datos de Presupuestos "
+                "(código, control, descripción, unidad y partida de cada concepto Base, AC, REC y ADD). "
+                "El porcentaje mide los conceptos OK sobre los evaluados. Meta: superar el 80%.",
         "percent": pct, "score_label": "% OK",
         "score_class": "score-red" if pct <= 70 else "score-orange" if pct < 95 else "score-green",
         "caption": f"{ok} de {ev} conceptos coinciden<br>con la Base de Datos.",
